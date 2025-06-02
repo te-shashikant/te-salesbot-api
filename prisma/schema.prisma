@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  password  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  userSettings  UserSetting?
+  botInstance   BotInstance?
+  whatsappGroup WhatsAppGroup[]
+  lead          Lead[]
+}
+
+model UserSetting {
+  id                Int     @id @default(autoincrement())
+  userId            Int     @unique
+  slackWebhookUrl   String?
+  notificationEmail String?
+  crmType           CrmType @default(NONE)
+  crmApiKey         String?
+  crmConfig         Json?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model BotInstance {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @unique
+  status        BotStatus @default(stopped)
+  sessionId     String?
+  qrCode        String?
+  lastHeartBeat DateTime?
+  startedAt     DateTime?
+  stoppedAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model WhatsAppGroup {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  groupName String
+  groupId   String?
+  isActive  Boolean   @default(true)
+  addedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Lead {
+  id          Int          @id @default(autoincrement())
+  userId      Int
+  name        String?
+  phoneNumber String
+  message     String?
+  mediaFiles  Json?
+  category    LeadCategory @default(general)
+  status      LeadStatus   @default(new)
+  sourceGroup String?
+  crmSynced   Boolean      @default(false)
+  crmId       String?
+  rawData     Json?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+enum CrmType {
+  ZOHO
+  HUBSPOT
+  NONE
+}
+
+enum BotStatus {
+  stopped
+  starting
+  qr_pending
+  ready
+  running
+  error
+}
+
+enum LeadCategory {
+  interested
+  general
+  spam
+}
+
+enum LeadStatus {
+  new
+  contacted
+  qualified
+  converted
+  closed
+}
